@@ -47,7 +47,7 @@
             loadingMessage.classList.remove('hidden');
 
             try {
-                const response = await fetch('http://localhost:3001/dl/image-sign', {
+                const response = await fetch('/dl/image-sign', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
