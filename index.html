@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DL Image Sign Fetch</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+
+    <h1 class="text-2xl font-bold mb-4">Download DL Image and Sign</h1>
+    <form id="dlForm" class="bg-white p-6 rounded shadow-md mb-4">
+        <label class="block mb-2" for="dlNumber">DL Number:</label>
+        <input type="text" id="dlNumber" required class="border border-gray-300 p-2 w-full rounded">
+        <br><br>
+        <label class="block mb-2" for="dob">Date of Birth (DD-MM-YYYY):</label>
+        <input type="text" id="dob" required class="border border-gray-300 p-2 w-full rounded">
+        <br><br>
+        <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Submit</button>
+    </form>
+
+    <div id="loadingMessage" class="hidden text-blue-500">Please wait...</div>
+    <h2 class="text-xl font-semibold mt-4">Response:</h2>
+    <pre id="response" class="bg-gray-200 p-2 rounded mb-4"></pre>
+    <div id="dlDetails" class="mb-4"></div>
+
+    <script>
+        function isValidDOB(dob) {
+            const dobRegex = /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-\d{4}$/;
+            return dobRegex.test(dob);
+        }
+
+        document.getElementById('dlForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const dlNumber = document.getElementById('dlNumber').value;
+            const dob = document.getElementById('dob').value;
+
+            // Validate the DOB format
+            if (!isValidDOB(dob)) {
+                alert('Please enter a valid date of birth in the format DD-MM-YYYY.');
+                return;
+            }
+
+            // Show loading message
+            const loadingMessage = document.getElementById('loadingMessage');
+            loadingMessage.classList.remove('hidden');
+
+            try {
+                const response = await fetch('http://localhost:3001/dl/image-sign', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ dlNumber, dob }),
+                });
+
+                const data = await response.json();
+                loadingMessage.classList.add('hidden'); // Hide loading message
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                
+                // Check if success and display the details
+                if (data.success) {
+                    const { dlDetails } = data.data;
+
+                    document.getElementById('dlDetails').innerHTML = `
+                        <h3 class="text-lg font-bold">DL Details:</h3>
+                        <table class="min-w-full bg-white border border-gray-300 mt-2">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="py-2 px-4 border">Field</th>
+                                    <th class="py-2 px-4 border">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="py-2 px-4 border">DL Number</td>
+                                    <td class="py-2 px-4 border">${dlDetails.dlNumber}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">Name</td>
+                                    <td class="py-2 px-4 border">${dlDetails.name}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">Father's Name</td>
+                                    <td class="py-2 px-4 border">${dlDetails.fatherName}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">RTO Name</td>
+                                    <td class="py-2 px-4 border">${dlDetails.rtoName}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">Date of Birth</td>
+                                    <td class="py-2 px-4 border">${dlDetails.dob}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">Profile Image</td>
+                                    <td class="py-2 px-4 border"><img src="${dlDetails.profileImage}" alt="Profile Image" class="max-w-xs" /></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">Signature Image</td>
+                                    <td class="py-2 px-4 border"><img src="${dlDetails.signImage}" alt="Signature Image" class="max-w-xs" /></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    document.getElementById('dlDetails').innerHTML = `<p class="text-red-500">Error: ${data.message}</p>`;
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                loadingMessage.classList.add('hidden'); // Hide loading message
+                document.getElementById('response').textContent = 'An error occurred while fetching the data.';
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "driving_licence_download_script",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Indal Singh",
+  "license": "ISC",
+  "dependencies": {
+    "chromium": "^3.0.3",
+    "crawlee": "^3.11.5",
+    "express": "^4.21.1",
+    "playwright": "^1.48.1"
+  }
+}
