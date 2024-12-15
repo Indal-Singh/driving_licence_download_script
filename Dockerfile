@@ -7,6 +7,7 @@ WORKDIR /app
 # Copy only package.json and install dependencies
 COPY package*.json ./
 RUN npm install
+RUN npx playwright install
 
 # Copy the project files to the working directory
 COPY . .
