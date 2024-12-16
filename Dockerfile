@@ -7,7 +7,6 @@ WORKDIR /app
 # Copy only package.json and install dependencies
 COPY package*.json ./
 RUN npm install
-
 # browser Installations
 RUN npx playwright install
 RUN npx playwright install-deps
