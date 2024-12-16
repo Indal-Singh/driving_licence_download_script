@@ -16,7 +16,7 @@ const downloadDLimageAndSign = async (req, res) => {
         return res.status(error.statusCode).json(error.format());
     }
 
-    const browser = await chromium.launch({ headless: false });
+    const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     await page.goto('https://sarathi.parivahan.gov.in/sarathiservice/stateSelection.do');
     await page.selectOption('#stfNameId', 'JH');
