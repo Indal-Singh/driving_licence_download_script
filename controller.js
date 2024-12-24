@@ -16,7 +16,7 @@ const downloadDLimageAndSign = async (req, res) => {
         return res.status(error.statusCode).json(error.format());
     }
 
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: false });
     const page = await browser.newPage();
     await page.goto('https://sarathi.parivahan.gov.in/sarathiservice/stateSelection.do');
     await page.selectOption('#stfNameId', 'JH');
@@ -69,38 +69,38 @@ const downloadDLimageAndSign = async (req, res) => {
         await page.waitForTimeout(2000);
 
         // Wait for the table to load
-    await page.waitForSelector('.table.NALOC');
+        await page.waitForSelector('.table');
 
-    // Extract RTO Name, Name, and Father's Name
-    const { rtoName, name, fatherName } = await page.evaluate(() => {
-        const cells = Array.from(document.querySelectorAll('.table.NALOC td'));
+        // Extract RTO Name, Name, and Father's Name
+        const { rtoName, name, fatherName } = await page.evaluate(() => {
+            const cells = Array.from(document.querySelectorAll('.table td'));
 
-        let rtoName = null;
-        let name = null;
-        let fatherName = null;
+            let rtoName = null;
+            let name = null;
+            let fatherName = null;
 
-        // Helper function to clean up cell text
-        const cleanText = (text) => text.replace(/\s+/g, ' ').trim();
+            // Helper function to clean up cell text
+            const cleanText = (text) => text.replace(/\s+/g, ' ').trim();
 
-        for (let i = 0; i < cells.length; i++) {
-            const cellText = cleanText(cells[i].textContent);
+            for (let i = 0; i < cells.length; i++) {
+                const cellText = cleanText(cells[i].textContent);
 
-            // Extract RTO Name
-            if (cellText === 'RTO Name:') {
-                rtoName = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
+                // Extract RTO Name
+                if (cellText === 'RTO Name:') {
+                    rtoName = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
+                }
+                // Extract Name
+                else if (cellText === 'Name:') {
+                    name = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
+                }
+                // Extract Father's Name
+                else if (cellText.includes("Father's Name")) {
+                    fatherName = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
+                }
             }
-            // Extract Name
-            else if (cellText === 'Name:') {
-                name = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
-            }
-            // Extract Father's Name
-            else if (cellText.includes("Father's Name")) {
-                fatherName = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
-            }
-        }
 
-        return { rtoName, name, fatherName };
-    });
+            return { rtoName, name, fatherName };
+        });
 
 
         // Click on the viewImages button
@@ -120,7 +120,7 @@ const downloadDLimageAndSign = async (req, res) => {
                 dob: dob,
                 name: name,
                 fatherName: fatherName,
-                rtoName:rtoName,
+                rtoName: rtoName,
                 profileImage: profileImage,
                 signImage: signImage
             }
@@ -138,6 +138,7 @@ const downloadDLimageAndSign = async (req, res) => {
         }
 
     } catch (err) {
+        console.log(err);
         const error = new ApiError(500, "Internal Server Error Filling Captcha");
         return res.status(error.statusCode).json(error.format());
     }

@@ -4,7 +4,7 @@ const app = express();
 const PORT = 3001;
 
 app.use(express.json());
-app.use(express.urlencoded());
+app.use(express.urlencoded({ extended: true })); 
 app.use(express.static(__dirname));
 
 app.get('/',(req,res)=>{
