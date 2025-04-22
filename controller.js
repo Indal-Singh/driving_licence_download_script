@@ -69,74 +69,83 @@ const downloadDLimageAndSign = async (req, res) => {
 
         await page.waitForTimeout(2000);
 
-        // Wait for the table to load
-        await page.waitForSelector('.table');
+        // <a target="_blank" href="dlDetailsResult.do?reqDlNumber=WB65 20250002895  ">WB65 20250002895    
+        // </a>
+        await page.waitForSelector('a[href*="dlDetailsResult.do"]');
+        const link = await page.$('a[href*="dlDetailsResult.do"]');
+        await link.click();
 
-        // Extract RTO Name, Name, and Father's Name
-        const { rtoName, name, fatherName } = await page.evaluate(() => {
-            const cells = Array.from(document.querySelectorAll('.table td'));
+        // Wait for the new page to open in the same browser
+        const [newPage] = await Promise.all([
+            page.context().waitForEvent('page'), // Wait for a new page to be created
+            page.waitForTimeout(2000) // Add a small delay to ensure the page is loaded
+        ]);
 
-            let rtoName = null;
-            let name = null;
-            let fatherName = null;
 
-            // Helper function to clean up cell text
-            const cleanText = (text) => text.replace(/\s+/g, ' ').trim();
+        // Extract Present Address and Permanent Address
+        const data = await newPage.evaluate(() => {
+            const getText = (selector) => {
+                const el = document.querySelector(selector);
+                return el ? el.innerText.trim() : '';
+            };
 
-            for (let i = 0; i < cells.length; i++) {
-                const cellText = cleanText(cells[i].textContent);
-
-                // Extract RTO Name
-                if (cellText === 'RTO Name:') {
-                    rtoName = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
+            const getInputValues = () => {
+                const rows = Array.from(document.querySelectorAll('table.NALOC input'));
+                const values = [];
+                for (let i = 0; i < rows.length; i += 3) {
+                    values.push({
+                        covCategory: rows[i]?.value || '',
+                        classOfVehicle: rows[i + 1]?.value || '',
+                        covIssueDate: rows[i + 2]?.value || '',
+                    });
                 }
-                // Extract Name
-                else if (cellText === 'Name:') {
-                    name = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
-                }
-                // Extract Father's Name
-                else if (cellText.includes("Father's Name")) {
-                    fatherName = cleanText(cells[i + 1]?.querySelector('b')?.textContent || '');
-                }
-            }
+                return values;
+            };
 
-            return { rtoName, name, fatherName };
+            const getImageSources = () => {
+                const imgs = document.querySelectorAll('div#divToPrint img');
+                return {
+                  profilePhoto: imgs[0]?.src || '',
+                  signature: imgs[1]?.src || '',
+                };
+              };
+            
+            const images = getImageSources();
+
+            return {
+                dlNumber: getText('div#divToPrint table:nth-of-type(1) b:nth-of-type(2)'),
+                licenceNumber: getText('div#divToPrint table:nth-of-type(1) b:nth-of-type(2)'),
+                name: getText('div#divToPrint table:nth-of-type(2) p:nth-of-type(1) b:nth-of-type(2)'),
+                gender: getText('div#divToPrint table:nth-of-type(2) p:nth-of-type(2) b:nth-of-type(2)'),
+                profileImage: images.profilePhoto,
+                signImage: images.signature,
+                status: getText('div#divToPrint table:nth-of-type(3) td:nth-of-type(2) b'),
+                swdName: getText('div#divToPrint table:nth-of-type(4) td:nth-of-type(2) b'),
+                fatherName: getText('div#divToPrint table:nth-of-type(4) td:nth-of-type(2) b'),
+                dob: getText('div#divToPrint table:nth-of-type(4) td:nth-of-type(4) b'),
+                presentAddress: getText('div#divToPrint table:nth-of-type(5) tr:nth-of-type(2) td:nth-of-type(1) b'),
+                permanentAddress: getText('div#divToPrint table:nth-of-type(5) tr:nth-of-type(2) td:nth-of-type(2) b'),
+                issueDate: getText('div#divToPrint table:nth-of-type(6) td:nth-of-type(2) b'),
+                rto: getText('div#divToPrint table:nth-of-type(6) td:nth-of-type(4) b'),
+                validity: {
+                    nonTransportFrom: getText('div#divToPrint table:nth-of-type(7) tr:nth-of-type(1) td:nth-of-type(3) b'),
+                    nonTransportTo: getText('div#divToPrint table:nth-of-type(7) tr:nth-of-type(1) td:nth-of-type(5) b'),
+                    transportFrom: getText('div#divToPrint table:nth-of-type(7) tr:nth-of-type(2) td:nth-of-type(3) b'),
+                    transportTo: getText('div#divToPrint table:nth-of-type(7) tr:nth-of-type(2) td:nth-of-type(5) b'),
+                },
+                covDetails: getInputValues()
+            };
         });
 
 
-        // Click on the viewImages button
-        await page.waitForSelector('#viewImages input');
-        await page.click('#viewImages input');
+        // close 
+        await browser.close();
 
-        // Wait for images to load in the container with ID 'images'
-        await page.waitForSelector('#images img');
-
-        // Extract the src attribute of the second image
-        const imageSrcs = await page.$$eval('#images img', images => images.map(img => img.src));
-        if (imageSrcs.length >= 2) {
-            const profileImage = imageSrcs[0];
-            const signImage = imageSrcs[1];
-            const dlDetails = {
-                dlNumber: dlNumber,
-                dob: dob,
-                name: name,
-                fatherName: fatherName,
-                rtoName: rtoName,
-                profileImage: profileImage,
-                signImage: signImage
-            }
-            // close 
-            await browser.close();
-            return res.status(200).json(new ApiResponse(
-                200,
-                { dlDetails: dlDetails },
-                "DL Basic Details Found."
-            ));
-            //    console.log('Second image src:', imageSrcs[1]);
-        } else {
-            const error = new ApiError(500, "Internal Server Error Related To Image");
-            return res.status(error.statusCode).json(error.format());
-        }
+        return res.status(200).json(new ApiResponse(
+            200,
+            { dlDetails: data },
+            "DL Basic Details Found."
+        ));
 
     } catch (err) {
         console.log(err);
@@ -228,20 +237,20 @@ const downloadDLimageAndSignNew = async (req, res) => {
             // Helper function to clean up cell text
             let cleanText = (text) => text.replace(/\s+/g, ' ').trim();
             for (let i = 0; i < rows.length; i++) {
-            const cells = rows[i].querySelectorAll('td');
-            if (cells.length === 2) {
-                const label = cleanText(cells[0].textContent.trim());
-                const value = cleanText(cells[1].textContent.trim());
+                const cells = rows[i].querySelectorAll('td');
+                if (cells.length === 2) {
+                    const label = cleanText(cells[0].textContent.trim());
+                    const value = cleanText(cells[1].textContent.trim());
 
-                // Extract Name
-                if (label.includes('Name :')) {
-                name = value;
+                    // Extract Name
+                    if (label.includes('Name :')) {
+                        name = value;
+                    }
+                    // Extract Father's Name
+                    else if (label.includes("Father's Name :")) {
+                        fatherName = value;
+                    }
                 }
-                // Extract Father's Name
-                else if (label.includes("Father's Name :")) {
-                fatherName = value;
-                }
-            }
             }
 
             return { name, fatherName };
@@ -265,14 +274,14 @@ const downloadDLimageAndSignNew = async (req, res) => {
             const rows = Array.from(document.querySelectorAll('.table.text-center.bold.NALOC tr'));
             const details = [];
 
-            for (let i = 1; i < rows.length; i++) { 
-            const cells = rows[i].querySelectorAll('td');
-            if (cells.length > 0) {
-                const vehicleClass = cells[0].textContent.trim();
-                const issueDate = cells[1]?.textContent.trim() || '';
-                const authority = cells[2]?.textContent.trim() || '';
-                details.push({ vehicleClass, issueDate, authority });
-            }
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i].querySelectorAll('td');
+                if (cells.length > 0) {
+                    const vehicleClass = cells[0].textContent.trim();
+                    const issueDate = cells[1]?.textContent.trim() || '';
+                    const authority = cells[2]?.textContent.trim() || '';
+                    details.push({ vehicleClass, issueDate, authority });
+                }
             }
 
             return details;
@@ -302,7 +311,7 @@ const downloadDLimageAndSignNew = async (req, res) => {
         // Extract the src attribute of the photo and sign images
         const photoSrc = await page.$eval('#imgDiv img', img => img.src);
         const signSrc = await page.$eval('#signDiv img', img => img.src);
-       
+
         if (photoSrc != "") {
             const profileImage = photoSrc;
             const signImage = signSrc;
@@ -311,11 +320,11 @@ const downloadDLimageAndSignNew = async (req, res) => {
                 dob: dob,
                 name: name,
                 fatherName: fatherName,
-                state : state,
-                rtoName:rto,
-                vehicleDetails:vehicleDetails,
-                issueDate:issueDate,
-                expiryDate:expiryDate,
+                state: state,
+                rtoName: rto,
+                vehicleDetails: vehicleDetails,
+                issueDate: issueDate,
+                expiryDate: expiryDate,
                 profileImage: profileImage,
                 signImage: signImage
             }
@@ -326,7 +335,6 @@ const downloadDLimageAndSignNew = async (req, res) => {
                 { dlDetails: dlDetails },
                 "DL Basic Details Found."
             ));
-            //    console.log('Second image src:', imageSrcs[1]);
         } else {
             const error = new ApiError(500, "Internal Server Error Related To Image");
             return res.status(error.statusCode).json(error.format());
@@ -339,4 +347,4 @@ const downloadDLimageAndSignNew = async (req, res) => {
     }
 }
 
-module.exports = { downloadDLimageAndSign,downloadDLimageAndSignNew }
+module.exports = { downloadDLimageAndSign, downloadDLimageAndSignNew }

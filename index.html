@@ -47,7 +47,7 @@
             loadingMessage.classList.remove('hidden');
 
             try {
-                const response = await fetch('/dl/image-sign', {
+                const response = await fetch('/dl/image-sign/old', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -87,7 +87,7 @@
                                 </tr>
                                 <tr>
                                     <td class="py-2 px-4 border">RTO Name</td>
-                                    <td class="py-2 px-4 border">${dlDetails.rtoName}</td>
+                                    <td class="py-2 px-4 border">${dlDetails.rto}</td>
                                 </tr>
                                 <tr>
                                     <td class="py-2 px-4 border">Date of Birth</td>
@@ -100,6 +100,18 @@
                                 <tr>
                                     <td class="py-2 px-4 border">Signature Image</td>
                                     <td class="py-2 px-4 border"><img src="${dlDetails.signImage}" alt="Signature Image" class="max-w-xs" /></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">Present Address</td>
+                                    <td class="py-2 px-4 border">${dlDetails.presentAddress}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">Permanet Address</td>
+                                    <td class="py-2 px-4 border">${dlDetails.permanentAddress}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-4 border">Issue Date</td>
+                                    <td class="py-2 px-4 border">${dlDetails.issueDate}</td>
                                 </tr>
                             </tbody>
                         </table>
