@@ -17,7 +17,7 @@ const downloadDLimageAndSign = async (req, res) => {
         return res.status(error.statusCode).json(error.format());
     }
 
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: false });
     const page = await browser.newPage();
     await page.goto('https://sarathi.parivahan.gov.in/sarathiservice/stateSelection.do');
     await page.selectOption('#stfNameId', 'JH');
@@ -153,7 +153,7 @@ const downloadDLimageAndSign = async (req, res) => {
 
 
         // close 
-        // await browser.close();
+        await browser.close();
 
         return res.status(200).json(new ApiResponse(
             200,
