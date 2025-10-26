@@ -90,7 +90,21 @@ const downloadDLimageAndSign = async (req, res) => {
             };
 
             const getInputValues = () => {
-                const rows = Array.from(document.querySelectorAll('table.NALOC input'));
+                // Find the table that contains "COV Category"
+                const tables = Array.from(document.querySelectorAll('table'));
+                let targetTable = null;
+                
+                for (const table of tables) {
+                    const text = table.textContent || '';
+                    if (text.includes('COV Category') && text.includes('Class of Vehicle')) {
+                        targetTable = table;
+                        break;
+                    }
+                }
+                
+                if (!targetTable) return [];
+                
+                const rows = Array.from(targetTable.querySelectorAll('input[type="text"]'));
                 const values = [];
                 for (let i = 0; i < rows.length; i += 3) {
                     values.push({
@@ -139,7 +153,7 @@ const downloadDLimageAndSign = async (req, res) => {
 
 
         // close 
-        await browser.close();
+        // await browser.close();
 
         return res.status(200).json(new ApiResponse(
             200,
@@ -167,7 +181,15 @@ const downloadDLimageAndSignNew = async (req, res) => {
     }
     dlNumber = validateLicenseNumber(dlNumber);
 
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ 
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu'
+        ]
+    });
     const page = await browser.newPage();
     await page.goto('https://sarathi.parivahan.gov.in/sarathiservice/stateSelection.do');
     await page.selectOption('#stfNameId', 'JH');

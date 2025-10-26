@@ -7,7 +7,6 @@ RUN npm install
 
 # Install playwright dependencies
 RUN npx playwright install
-RUN npx playwright install-deps
 
 COPY . .
 
